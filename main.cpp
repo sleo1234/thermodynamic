@@ -71,7 +71,6 @@ result
 
 double eq(double x){
 
-
 vector<double> T_cr={369.8,425.2,469.7};
 vector<double> P_cr={4.25,3.8,3.37};
 vector<double> xmol={0.5,0.25,0.25};

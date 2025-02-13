@@ -3,11 +3,7 @@
 #include "MatrixOperations.h"
 #include "ExpressionBuilder.h"
 using namespace std;
-
-
 vector<double> removeAtIndex(vector<double> vec, int index){
-
-
 
 vector<double>  newVec;
 

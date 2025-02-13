@@ -1,0 +1,3 @@
+/home/andrei/Documents/thermo/CMakeFiles/Solver.cpp.dir
+/home/andrei/Documents/thermo/CMakeFiles/edit_cache.dir
+/home/andrei/Documents/thermo/CMakeFiles/rebuild_cache.dir
