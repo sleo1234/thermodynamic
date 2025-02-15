@@ -343,9 +343,6 @@ cout<<"Solution was not found"<<endl;
 
 sol=(a+b)/2;
 
-
-
-
 if (abs(b-a)/2<error){
 
 cout<<"---b-a---- "<<(b-a)<<endl;
@@ -365,7 +362,6 @@ a=sol;
  else{
 
 b=sol;
-
 
  } 
 
@@ -478,7 +474,6 @@ return sol;
 
 
 double FlashCalculation::solveBisection(PropertyPackage pr, double T, vector<double> xmol, double offset, double error){
-
 
 double sol=0;
 

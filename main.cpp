@@ -136,8 +136,8 @@ vector<double> xmol={0.5,0.25,0.25};
 vector<double> omega={0.153,0.199,0.255};
  
 int nc = T_cr.size();
-double T =450;
-double press = 1.5;
+double T =300;
+double press = .1;
 
 PropertyPackage pr(nc,omega,T_cr,P_cr,xmol);
 pr.nc=nc;
@@ -146,6 +146,12 @@ pr.P_cr=P_cr;
 pr.omega=omega;
 pr.x_mol=xmol;
 vector<double> Ki = pr.calcKi(T,press);
+
+ vector<double> solsDer = pr.analyticalDerivativeZc(press,T,xmol);
+ vector<double> sols = pr.analyticalPengRobinson(press,T,xmol);
+ printVector(sols);
+ printVector(solsDer);
+ /*
 //vector<double> result2 = pr.calcPi_sat(400);
 //vector<double> result3 = pr.calcPi(A,B,C,400);
 
@@ -248,7 +254,7 @@ double x0 = 0.5;
 //printVector(pr.calcFi(T,press,xmol,0.5));
 
 
-
+*/
     return 0;
 }
 

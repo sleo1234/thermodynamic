@@ -118,3 +118,5 @@ cout << "The value of root is : " << c;
 sol=c;
 return sol;
 }
+
+

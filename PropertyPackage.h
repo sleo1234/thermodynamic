@@ -41,6 +41,9 @@ public:
  vector<double> solvePengRobinsonEq(double T, double press, vector<double> xmol);
  vector<double> calcFi(double T, double press, vector<double> xmol,double Zalfa);
  double mixRule(vector<double> xmol, vector<double> property);
+ vector<double> analyticalDerivativeZc(double press, double temp, vector<double> xmol);
+ vector<vector<double>> getAijDer(double temp, double p);
+ vector<double> calcFiDer(double T, double press, vector<double> xmol, double Zalfa);
 };
 
 

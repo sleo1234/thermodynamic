@@ -296,3 +296,5 @@ vector<double> getVecSum(vector<double> xmol, vector<vector<double>> mat){
 
            return xSum;
             }
+
+

@@ -133,6 +133,24 @@ return Aij;
 }
 
 
+vector<vector<double>>  PropertyPackage::getAijDer(double temp, double p){
+    double k = 1/(temp*temp*R*R);
+    vector<double> a(nc);
+    vector<double> alfa = alfa_m(temp);
+    vector<vector<double>> Aij(nc,vector<double>(nc));
+
+    for (int i=0; i<nc;i++){
+        for (int j=0; j<nc;j++){
+
+            Aij[i][j] = k * sqrt(a_M(temp)[i]*a_M(temp)[j]);
+
+        }
+    }
+
+    return Aij;
+}
+
+
 
 
 
@@ -305,6 +323,139 @@ return val;
 }
 
 
+vector<double> PropertyPackage::analyticalDerivativeZc(double press, double temp, vector<double> xmol){
+
+    double pi = 4*atan(1);
+    vector<double> sols;
+    double A = (attractParam (temp,xmol) * press) / (R * R * temp * temp);
+    double B = (covolParam(xmol) * press) /(R * temp);
+
+    double C2 = B-1.0;
+    double C1 = (A-3*B*B-2*B);
+    double C0 =(B*B*B+B*B-A*B);
+    double Q1 = C2*C1/6.0-C0/2.0-(C2*C2*C2)/27.0;
+    double P1 = C2*C2/9.0-C1/3.0;
+    double D = Q1*Q1-P1*P1*P1;
+
+
+
+
+
+    double Ader = (attractParam (temp,xmol)) / (R * R * temp * temp);
+    double Bder = (covolParam(xmol)) /(R * temp);
+
+    double C2der = Bder;
+    double C1der = (Ader - 6*Bder*B-2*Bder);
+
+    double C0der = 3*B*B*Bder+2*Bder*B-(Ader*B+A*Bder);
+    double Q1der = (C2der*C1+C1der*C2)/6-C0der/2-3*C2*C2*C2der/27;
+    double P1der = C2*C2*C2der/9-C1der/3;
+    double Dder = Q1*Q1-P1*P1*P1; 2*Q1*Q1der-3*P1*P1*P1der;
+
+    double teta = 0.0;
+    double tetaDer = 0.0;
+
+
+    if ( D >= 0.0){
+        double sign1 = (Q1+sqrt(D))/(abs(Q1+sqrt(D)));
+        double sign2 = (Q1-sqrt(D))/(abs(Q1-sqrt(D)));
+        double sol1 =sign1*pow(abs((Q1+sqrt(D))),1.0/3.0)+sign2*pow(abs((Q1-sqrt(D))),1.0/3.0)-C2/3.0;
+
+        double sign1der,sign2der=0;
+        double QplusD = abs(Q1+sqrt(D));
+        double QplusDder = abs(Q1der +D/(2*sqrt(D)));
+        double QminusD = abs(Q1+sqrt(D));
+        double QminusDder = abs(Q1der - D/(2*sqrt(D)));
+
+        double first_term = sign1*pow(abs((Q1+sqrt(D))),1.0/3.0);
+        double first_termDer = sign1der*pow(abs((Q1+sqrt(D))),1.0/3.0)+sign1*(1/3)*pow(abs((Q1+sqrt(D))),-2.0/3.0)*QplusDder;
+
+        double second_term = sign1*pow(abs((Q1-sqrt(D))),1.0/3.0);
+        double second_termDer = sign2der*pow(abs((Q1+sqrt(D))),1.0/3.0)+sign2*(1/3)*pow(abs((Q1-sqrt(D))),-2.0/3.0)*QminusDder;
+
+        double sol1der= first_termDer+second_termDer;
+        sols.push_back(sol1der);
+
+    }
+
+    else {
+
+
+        double t1 = (Q1*Q1)/(P1*P1*P1);
+
+        double first_term=(Q1*Q1);
+        double second_term=(P1*P1*P1);
+
+        double Q1sqDer = 2*Q1*Q1der;
+        double P13Der = 3*P1*P1*P1der;
+
+        double t1der = (1/P13Der*P13Der)*(Q1sqDer*second_term-first_term*P13Der);
+
+
+        double t2 = (sqrt(1-t1))/((sqrt(t1)*(Q1/abs(Q1))));//-----(f/(g*Q1/(abs(Q1))
+                                                          //-----------==
+        /*
+
+        (sqrt(1-t1))/((sqrt(t1)*(Q1/abs(Q1)))) =  f
+                                                 ------
+                                                  g * Q1
+                                                     ----
+                                                      abs(Q1)
+            f = sqrt(1-t1), g = sqrt(t1)                */
+        double f = sqrt(1-t1);
+        double g = sqrt(t1);
+        double gder = t1der/(2*sqrt(t1));
+        double fder = -1*t1der /(2*sqrt(1-t1));
+
+        double gTimesQ1absQ1 = g*Q1/abs(Q1);
+        double gTimesQ1absQ1der = gder*Q1/abs(Q1);
+        double t2der = (fder * gTimesQ1absQ1 - f * gTimesQ1absQ1der)/(gTimesQ1absQ1 * gTimesQ1absQ1);
+
+
+        if (atan(t2) <0){
+            teta = atan(t2)+pi;
+            tetaDer = t2der/(atan(t2)*atan(t2)+1);
+
+        }
+        else {
+            teta = atan(t2);
+            tetaDer = t2der/(atan(t2)*atan(t2)+1);
+        }
+        //double sol1 = 2*sqrt(P1)*cos(teta/3.0)-C2/3.0;
+
+        double f1 = 2*sqrt(P1);
+        double f2 = cos(teta/3.0);
+        double f1der = P1der / sqrt(P1);
+        double f2der = -sin(teta/3.0) * (tetaDer / 3);
+
+        double sol1Der = f1der * f2 + f1 * f2der-(1/3)*C2der;
+        /*
+
+         */
+        double sol2 = 2*sqrt(P1)*cos((teta+2*pi)/3.0)-C2/3.0;
+
+        double f22 = cos((teta+2*pi)/3.0);
+        double f22der = -sin((teta+2*pi)/3.0) * (tetaDer / 3);
+
+        double sol2Der = f1der * f22 + f22der * f1 - (1/3)*C2der;
+
+
+        double sol3 = 2*sqrt(P1)*cos((teta+4*pi)/3.0)-C2/3.0;
+
+        double f33 = cos((teta+4*pi)/3.0);
+        double f33der = -sin((teta+4*pi)/3.0) * (tetaDer / 3);
+
+        double sol3Der = f1der * f33 + f33der * f1 - (1/3)*C2der;
+        sols.push_back(sol1Der);
+        sols.push_back(sol2);
+        sols.push_back(sol3);
+        }
+
+
+return sols;
+}
+
+
 
 
 
@@ -317,8 +468,6 @@ a_M(T);
 lambda_vec();
 attractParam(T,xmol);
 covolParam(xmol);
-
-
 
 
 }
@@ -376,12 +525,115 @@ cout<<"Bm------------ "<<Bm<<endl;
 cout<<"Am------------ "<<Am<<endl;
   }
 
-
-
-
 return fug;
 
 }
+
+
+vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double> xmol, double Zalfa){
+
+    double ZalfaDer = analyticalDerivativeZc(T,press,xmol)[0];
+
+    double Vm =(Zalfa*R*T)/press;//cm3/mol
+    double VmDer = ZalfaDer*R*T/press-(1/press*press)*Zalfa;
+
+    double bm = covolParam(xmol);
+
+    double aa = attractParam(T, xmol);
+
+    vector<double> bi = b_M();
+
+    double rad2 = sqrt(2);
+
+    vector<double> ffi(nc);
+    vector<double> fug(nc);
+
+    double Bm = bm*press/(R*T);
+    double Am = aa*press/(R*R*T*T);
+
+    double BmDer = bm/(R*T);
+    double AmDer = aa/(R*R*T*T);
+
+    vector<double> Bi(nc);
+    vector<double> BiDer(nc);
+    vector<double> Bi_BmDer(nc);
+    vector<double> vecSum = getVecSum(xmol,getAij(T,press));
+    vector<double> vecSumDer = getVecSum(xmol,getAijDer(T,press));
+    //derivative of log(Zalfa-Bm)
+
+    double logZalfa_Bm = (ZalfaDer - BmDer)/(Zalfa-Bm);
+    //derivative of (Am/(2*rad2*Bm)) -----> AmDer / (2*rad2*Bm) - (2*rad2*BmDer) * Am
+    //                                                         --------------------------
+    //                                                         ((2*rad2*Bm)*(2*rad2*Bm))
+
+    double Am_rad2_Bm = AmDer/(2*rad2*Bm) - ((2*rad2*BmDer) * Am)/((2*rad2*Bm)*(2*rad2*Bm));
+    //derivative (2.0/Am)*vecSum[i]
+    vector<double> Am_VecSum(nc);
+
+
+    //2*vecSum[i] '   2  * vecSum[i] + vecSumDer[i] * 2
+    //-----------  = (---) '                         ------
+    //    Am          Am                                Am
+
+    /*
+        2*vecSum[i] '   -2*AmDer*vecSum[i]   vecSumDer[i] * 2
+        -----------  =  ------------------- + ---------------
+            Am                Am*Am                  Am
+     */
+    //--------derivative of log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm)
+
+   /*
+       Zalfa+(1+rad2*Bm) '
+   log ------------------ = (log (Zalfa + (1+rad2*Bm) - log (Zalfa + (1 - rad2*Bm))'
+       Zalfa+(1-rad2*Bm)
+
+    [Zalfa+(1+rad2*Bm)]'      [Zalfa+(1-rad2*Bm)]'
+=  --------------------- --  -------------------
+     Zalfa+(1+rad2*Bm)        Zalfa+(1-rad2*Bm)
+
+     ZalfaDer + rad2*BmDer      ZalfaDer - rad2*BmDer
+ =  --------------------- --  ----------------------
+      Zalfa+(1+rad2*Bm)        Zalfa+(1-rad2*Bm)
+
+    */
+
+
+
+
+
+    for (int i=0; i<nc;i++){
+
+        Bi[i]=press*bi[i]/(R*T);
+        BiDer[i]=bi[i]/(R*T);
+
+        //BmDer = bm/(R*T);
+        Bi_BmDer[i] = BiDer[i]/Bm-(1/(Bm*Bm))*Bi[i];
+        Am_VecSum[i] = (-2*AmDer*vecSum[i])/(Am*Am) + 2*vecSumDer[i]/Am;
+
+    double logZalfa_rad2 = (ZalfaDer+rad2*BmDer)/(Zalfa+(1+rad2*Bm)) - (ZalfaDer-rad2*BmDer)/(Zalfa+(1-rad2*Bm));
+
+    ffi[i] =(Bi[i]/Bm)*(Zalfa-1.0)-log(Zalfa-Bm)-
+    (Am/(2*rad2*Bm))*( (2.0/Am)*vecSum[i] -
+                       Bi[i]/Bm)*log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
+
+     //2*vecSum[i] '   2  * vecSum[i] + vecSumDer[i] * 2
+    //-----------  = (---) '                         ------
+    //    Am          Am                                Am
+
+    /*
+        //2*vecSum[i] '   -2*AmDer*vecSum[i]   vecSumDer[i] * 2
+        //-----------  =  ------------------- + ---------------
+        //    Am                Am*Am                  Am
+     */
+
+    fug[i] = exp(ffi[i]);
+
+    }
+
+  return {0};
+  }
+
+
 
 //vector<double> PropertyPackage::
 
