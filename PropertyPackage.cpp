@@ -559,8 +559,8 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
     vector<double> Bi_BmDer(nc);
     vector<double> vecSum = getVecSum(xmol,getAij(T,press));
     vector<double> vecSumDer = getVecSum(xmol,getAijDer(T,press));
-    //derivative of log(Zalfa-Bm)
 
+    //derivative of log(Zalfa-Bm)
     double logZalfa_Bm = (ZalfaDer - BmDer)/(Zalfa-Bm);
     //derivative of (Am/(2*rad2*Bm)) -----> AmDer / (2*rad2*Bm) - (2*rad2*BmDer) * Am
     //                                                         --------------------------
@@ -570,7 +570,7 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
     //derivative (2.0/Am)*vecSum[i]
     vector<double> Am_VecSum(nc);
 
-
+    double logZalfa_rad2 = (ZalfaDer+rad2*BmDer)/(Zalfa+(1+rad2*Bm)) - (ZalfaDer-rad2*BmDer)/(Zalfa+(1-rad2*Bm));
     //2*vecSum[i] '   2  * vecSum[i] + vecSumDer[i] * 2
     //-----------  = (---) '                         ------
     //    Am          Am                                Am
@@ -597,8 +597,28 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
 
     */
 
+    /* Derivative of   (Am/(2*rad2*Bm))*( (2.0/Am)*vecSum[i] -
+                       Bi[i]/Bm)*log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
 
+       (f * g * h)' = f' * g * h + h * g' * f + f * g * h'
+       [f * (g - h * l)]' = f'(g-h * l) + f (g' -h' * l - l * h)
 
+       WHERE f = Am/(2*rad2*Bm)) <===============> Am_rad2_Bm ------ double f
+             g = (2.0/Am)*vecSum[i] <====>  Am_VecSum[i] ----- vector<double> g(nc)
+             h = Bi[i]/Bm      <====> Bi_BmDer[i] ------ vector<double> h(nc)
+             l = log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm)) <===> logZalfa_rad2 ----- double l
+*/
+
+      double f = Am/(2*rad2*Bm);
+      double fder = Am_rad2_Bm;
+      vector<double> g(nc);
+      vector<double> gder(nc);
+      vector<double> h(nc);
+      vector<double> hder(nc);
+      double l = logZalfa_rad2;
+
+      vector<double> second_term_derivative(nc);
+      vector<double> first_term_derivative(nc);
 
 
     for (int i=0; i<nc;i++){
@@ -610,8 +630,8 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
         Bi_BmDer[i] = BiDer[i]/Bm-(1/(Bm*Bm))*Bi[i];
         Am_VecSum[i] = (-2*AmDer*vecSum[i])/(Am*Am) + 2*vecSumDer[i]/Am;
 
-    double logZalfa_rad2 = (ZalfaDer+rad2*BmDer)/(Zalfa+(1+rad2*Bm)) - (ZalfaDer-rad2*BmDer)/(Zalfa+(1-rad2*Bm));
-
+        //f'(g-h * l) + f (g' -h' * l - l * h)
+    second_term_derivative[i] = fder*(g[i] - h[i] * l) + f * (gder[i] - hder[i] * l - l * h[i]);
     ffi[i] =(Bi[i]/Bm)*(Zalfa-1.0)-log(Zalfa-Bm)-
     (Am/(2*rad2*Bm))*( (2.0/Am)*vecSum[i] -
                        Bi[i]/Bm)*log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
