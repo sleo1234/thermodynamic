@@ -327,6 +327,7 @@ vector<double> PropertyPackage::analyticalDerivativeZc(double press, double temp
 
     double pi = 4*atan(1);
     vector<double> sols;
+
     double A = (attractParam (temp,xmol) * press) / (R * R * temp * temp);
     double B = (covolParam(xmol) * press) /(R * temp);
 
@@ -337,10 +338,6 @@ vector<double> PropertyPackage::analyticalDerivativeZc(double press, double temp
     double P1 = C2*C2/9.0-C1/3.0;
     double D = Q1*Q1-P1*P1*P1;
 
-
-
-
-
     double Ader = (attractParam (temp,xmol)) / (R * R * temp * temp);
     double Bder = (covolParam(xmol)) /(R * temp);
 
@@ -348,32 +345,55 @@ vector<double> PropertyPackage::analyticalDerivativeZc(double press, double temp
     double C1der = (Ader - 6*Bder*B-2*Bder);
 
     double C0der = 3*B*B*Bder+2*Bder*B-(Ader*B+A*Bder);
-    double Q1der = (C2der*C1+C1der*C2)/6-C0der/2-3*C2*C2*C2der/27;
-    double P1der = C2*C2*C2der/9-C1der/3;
-    double Dder = Q1*Q1-P1*P1*P1; 2*Q1*Q1der-3*P1*P1*P1der;
+    double Q1der = (C2der*C1+C1der*C2)/6-C0der/2-C2*C2*C2der/9;
+
+    double P1der = 2*C2*C2der/9-C1der/3;
+    double Dder =  2*Q1*Q1der-3*P1*P1*P1der;
+
+
+    cout<<"A "<<A<<endl;
+    cout<<"Ader = "<<Ader<<endl;
+    cout<<"Bder = "<<Bder<<endl;
+    cout<<"C2der = "<<C2der<<endl;
+    cout<<"C1der = "<<C1der<<endl;
+    cout<<"C0der = "<<C0der<<endl;
+    cout<<"Q1der = "<<Q1der<<endl;
+    cout<<"P1der = "<<P1der<<endl;
+    cout<<"Dder = "<<Dder<<endl;
 
     double teta = 0.0;
     double tetaDer = 0.0;
 
-
     if ( D >= 0.0){
         double sign1 = (Q1+sqrt(D))/(abs(Q1+sqrt(D)));
         double sign2 = (Q1-sqrt(D))/(abs(Q1-sqrt(D)));
+
         double sol1 =sign1*pow(abs((Q1+sqrt(D))),1.0/3.0)+sign2*pow(abs((Q1-sqrt(D))),1.0/3.0)-C2/3.0;
 
-        double sign1der,sign2der=0;
+        double sign1der=sign1;
+        double sign2der=sign2;
+
+        /*
+        (Q1+ sqrt(D))^1/3 = (1/3)*(Q1+sqrt(D))' (Q1+sqrt(D))^(-2/3) = (1/3)*(Q1der + Dder/(2*sqrt(D)) (Q1+sqrt(D))^(-2/3)
+
+         */
         double QplusD = abs(Q1+sqrt(D));
         double QplusDder = abs(Q1der +D/(2*sqrt(D)));
         double QminusD = abs(Q1+sqrt(D));
         double QminusDder = abs(Q1der - D/(2*sqrt(D)));
 
-        double first_term = sign1*pow(abs((Q1+sqrt(D))),1.0/3.0);
-        double first_termDer = sign1der*pow(abs((Q1+sqrt(D))),1.0/3.0)+sign1*(1/3)*pow(abs((Q1+sqrt(D))),-2.0/3.0)*QplusDder;
+        //double first_term = sign1*pow(abs((Q1+sqrt(D))),1.0/3.0);
 
-        double second_term = sign1*pow(abs((Q1-sqrt(D))),1.0/3.0);
-        double second_termDer = sign2der*pow(abs((Q1+sqrt(D))),1.0/3.0)+sign2*(1/3)*pow(abs((Q1-sqrt(D))),-2.0/3.0)*QminusDder;
+        double first_term = sign1*(1/3)*(Q1der+Dder/(2*sqrt(D))*pow((Q1+sqrt(D)),-2/3));
+        double second_term = sign2*(1/3)*(1/3)*(Q1der-Dder/(2*sqrt(D))*pow((Q1-sqrt(D)),-2/3));
 
-        double sol1der= first_termDer+second_termDer;
+        //double first_termDer = pow(abs((Q1+sqrt(D))),1.0/3.0)*sign1*(1/3)*pow(abs((Q1+sqrt(D))),-2.0/3.0)*QplusDder;
+
+        //double second_term = sign1*pow(abs((Q1-sqrt(D))),1.0/3.0);
+        //double second_termDer = sign2der*pow(abs((Q1+sqrt(D))),1.0/3.0)+sign2*(1/3)*pow(abs((Q1-sqrt(D))),-2.0/3.0)*QminusDder;
+
+        double sol1der= first_term+second_term;
+        cout<<"sol1der "<<first_term<<" "<<second_term<<endl;
         sols.push_back(sol1der);
 
     }
@@ -414,12 +434,12 @@ vector<double> PropertyPackage::analyticalDerivativeZc(double press, double temp
 
         if (atan(t2) <0){
             teta = atan(t2)+pi;
-            tetaDer = t2der/(atan(t2)*atan(t2)+1);
+            tetaDer = t2der/((t2)*(t2)+1);
 
         }
         else {
             teta = atan(t2);
-            tetaDer = t2der/(atan(t2)*atan(t2)+1);
+            tetaDer = t2der/((t2)*(t2)+1);
         }
         //double sol1 = 2*sqrt(P1)*cos(teta/3.0)-C2/3.0;
 
@@ -532,10 +552,12 @@ return fug;
 
 vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double> xmol, double Zalfa){
 
-    double ZalfaDer = analyticalDerivativeZc(T,press,xmol)[0];
+    double ZalfaDer = analyticalDerivativeZc(press,T,xmol)[0];
+    //double ZalfaDer = 0.888;
+    cout<<"Derivative of Z "<<endl;
 
     double Vm =(Zalfa*R*T)/press;//cm3/mol
-    double VmDer = ZalfaDer*R*T/press-(1/press*press)*Zalfa;
+    double VmDer = ZalfaDer*R*T/press-(1/press*press)*Zalfa*R*T;
 
     double bm = covolParam(xmol);
 
@@ -597,11 +619,15 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
 
     */
 
-    /* Derivative of   (Am/(2*rad2*Bm))*( (2.0/Am)*vecSum[i] -
-                       Bi[i]/Bm)*log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
+    /* Derivative of  (Bi[i]/Bm)*(Zalfa-1.0)-log(Zalfa-Bm)
 
+         (ff * gg - hh)' = ff'*gg + ff * gg' - hh'
+
+         Derivative of   (Am/(2*rad2*Bm))*( (2.0/Am)*vecSum[i] -
+                       Bi[i]/Bm)*log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
+        ff
        (f * g * h)' = f' * g * h + h * g' * f + f * g * h'
-       [f * (g - h * l)]' = f'(g-h * l) + f (g' -h' * l - l * h)
+       [f * (g - h) * l)]' = (g - h)*(l*f' + l'*f) + l*f*(g'- h')
 
        WHERE f = Am/(2*rad2*Bm)) <===============> Am_rad2_Bm ------ double f
              g = (2.0/Am)*vecSum[i] <====>  Am_VecSum[i] ----- vector<double> g(nc)
@@ -611,15 +637,28 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
 
       double f = Am/(2*rad2*Bm);
       double fder = Am_rad2_Bm;
+
       vector<double> g(nc);
       vector<double> gder(nc);
+
       vector<double> h(nc);
       vector<double> hder(nc);
-      double l = logZalfa_rad2;
+
+      double l = log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
+      double lder = logZalfa_rad2;
 
       vector<double> second_term_derivative(nc);
       vector<double> first_term_derivative(nc);
+      vector<double> ff(nc);
 
+      vector<double> ffider(nc);
+      vector<double> fugder(nc);
+
+      double gg = Zalfa - 1;
+      double ggder = ZalfaDer;
+
+      double hh = log(Zalfa-Bm);
+      double hhder = logZalfa_Bm;
 
     for (int i=0; i<nc;i++){
 
@@ -629,9 +668,14 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
         //BmDer = bm/(R*T);
         Bi_BmDer[i] = BiDer[i]/Bm-(1/(Bm*Bm))*Bi[i];
         Am_VecSum[i] = (-2*AmDer*vecSum[i])/(Am*Am) + 2*vecSumDer[i]/Am;
+        ff[i] = Bi_BmDer[i];
+      //  ff'*gg + ff * gg' - hh'
+    first_term_derivative[i] = ff[i]*gg+ff[i]*ggder - hhder;
 
-        //f'(g-h * l) + f (g' -h' * l - l * h)
-    second_term_derivative[i] = fder*(g[i] - h[i] * l) + f * (gder[i] - hder[i] * l - l * h[i]);
+    second_term_derivative[i] =(g[i]-h[i])*(l*fder+lder*f)+l*f*(gder[i]-hder[i]);
+
+    ffider[i] = first_term_derivative[i]+second_term_derivative[i];
+
     ffi[i] =(Bi[i]/Bm)*(Zalfa-1.0)-log(Zalfa-Bm)-
     (Am/(2*rad2*Bm))*( (2.0/Am)*vecSum[i] -
                        Bi[i]/Bm)*log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
@@ -647,10 +691,13 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
      */
 
     fug[i] = exp(ffi[i]);
-
+    fugder[i] = ffider[i]*fug[i];
+     cout<<"ffderi1 "<<first_term_derivative[i]<<endl;
+        cout<<"ffderi2 "<<second_term_derivative[i]<<endl;
+        cout<<"Zalfader "<<ZalfaDer<<endl;
     }
 
-  return {0};
+  return fugder;
   }
 
 

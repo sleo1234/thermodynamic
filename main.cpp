@@ -136,8 +136,8 @@ vector<double> xmol={0.5,0.25,0.25};
 vector<double> omega={0.153,0.199,0.255};
  
 int nc = T_cr.size();
-double T =300;
-double press = .1;
+double T =350;
+double press = 1.5;
 
 PropertyPackage pr(nc,omega,T_cr,P_cr,xmol);
 pr.nc=nc;
@@ -149,8 +149,21 @@ vector<double> Ki = pr.calcKi(T,press);
 
  vector<double> solsDer = pr.analyticalDerivativeZc(press,T,xmol);
  vector<double> sols = pr.analyticalPengRobinson(press,T,xmol);
- printVector(sols);
- printVector(solsDer);
+
+ vector<double> fugacities = pr.calcFi(T,press,xmol,1.5);
+ vector<double> fugacitiesDerL = pr.calcFiDer(T,press,xmol,0.8);
+ vector<double> fugacitiesDerV = pr.calcFiDer(T,press,xmol,1.4);
+ vector<double> res = vecDiff(fugacitiesDerL,fugacitiesDerV);
+ cout<<"Fil - FIv "<<endl;
+ printVector(res);
+
+// printVector(sols);
+// printVector(solsDer);
+ printf("fugacities = ");
+ printVector(fugacities);
+ cout<<endl;
+ printf("fugacitiesDer = ");
+ printVector(fugacitiesDerL);
  /*
 //vector<double> result2 = pr.calcPi_sat(400);
 //vector<double> result3 = pr.calcPi(A,B,C,400);
