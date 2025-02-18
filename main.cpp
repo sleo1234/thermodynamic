@@ -105,6 +105,60 @@ return x*x*x*x*x+x*x*x - x*x + 2;
 }
 
 
+void fugacityData() {
+ vector<double> A={15.726,1872.46,-25.16};//propane
+ vector<double> B={15.678,2154.9,-34.42};//butane
+ vector<double> C={15.883,2477.07,-39.94};//pentane
+
+ vector<double> T_cr={369.8,425.2,469.7};
+ vector<double> P_cr={4.25,3.8,3.37};
+ vector<double> xmol={0.5,0.25,0.25};
+ vector<double> omega={0.153,0.199,0.255};
+
+ int nc = T_cr.size();
+ double T = 400;
+ double press = 1.5;
+
+ vector<double> P= {1.5,1.6};
+ int data_size = P.size();
+
+ vector<vector<double>>Zc(3,vector<double>(data_size,0));
+ vector<vector<double>>ZcDer(3,vector<double>(data_size,0));
+
+ //vector<double> fugDer(data_size);
+
+ //vector<double> ZcDer(data_size);
+ PropertyPackage pr(nc,omega,T_cr,P_cr,xmol);
+ pr.nc=nc;
+ pr.T_cr=T_cr;
+ pr.P_cr=P_cr;
+ pr.omega=omega;
+ pr.x_mol=xmol;
+
+ for (int j=0; j<3; j++) {
+  for (int i=0; i<data_size; i++) {
+   Zc[j][i] = pr.analyticalPengRobinson(P[i],T,xmol)[i];
+
+   ZcDer[j][i] = pr.analyticalDerivativeZc(P[i],T,xmol)[i];
+   //fug[i] = pr.calcFi(T,P[i],xmol,Zc[i])[0];
+   //fugDer[i] = pr.calcFiDer(T,P[i],xmol,ZcDer[i])[0];
+  }
+
+ }
+ //printVector(ZcDer);
+ //cout<<"Fugacities vector:"<<endl;
+//printVector(fug);
+ //cout<<"Derivative of fugacities vector:"<<endl;
+ //printVector(fugDer);
+ //cout<<endl;
+ cout<<"-----------------Zc------------------"<<endl;
+ printMatrix(Zc);
+ cout<<endl;
+ cout<<"-----------------ZcDer------------------"<<endl;
+ printMatrix(ZcDer);
+ cout<<endl;
+}
+
 
 void testBisection(){
 
@@ -126,6 +180,7 @@ int main() {
         {2, 6}
     };
 //testBisection();
+ fugacityData();
 vector<double> A={15.726,1872.46,-25.16};//propane
 vector<double> B={15.678,2154.9,-34.42};//butane
 vector<double> C={15.883,2477.07,-39.94};//pentane
@@ -136,7 +191,7 @@ vector<double> xmol={0.5,0.25,0.25};
 vector<double> omega={0.153,0.199,0.255};
  
 int nc = T_cr.size();
-double T =350;
+double T =400;
 double press = 1.5;
 
 PropertyPackage pr(nc,omega,T_cr,P_cr,xmol);
@@ -147,23 +202,10 @@ pr.omega=omega;
 pr.x_mol=xmol;
 vector<double> Ki = pr.calcKi(T,press);
 
- vector<double> solsDer = pr.analyticalDerivativeZc(press,T,xmol);
- vector<double> sols = pr.analyticalPengRobinson(press,T,xmol);
 
- vector<double> fugacities = pr.calcFi(T,press,xmol,1.5);
- vector<double> fugacitiesDerL = pr.calcFiDer(T,press,xmol,0.8);
- vector<double> fugacitiesDerV = pr.calcFiDer(T,press,xmol,1.4);
- vector<double> res = vecDiff(fugacitiesDerL,fugacitiesDerV);
- cout<<"Fil - FIv "<<endl;
- printVector(res);
+ FlashCalculation flash = FlashCalculation(pr);
+ double val2 = flash.solveBubblePoint(pr,T,xmol,1e-4,100);
 
-// printVector(sols);
-// printVector(solsDer);
- printf("fugacities = ");
- printVector(fugacities);
- cout<<endl;
- printf("fugacitiesDer = ");
- printVector(fugacitiesDerL);
  /*
 //vector<double> result2 = pr.calcPi_sat(400);
 //vector<double> result3 = pr.calcPi(A,B,C,400);
@@ -183,7 +225,7 @@ double Pinit = flash.calcPinit(pr,xmol,T);
 //cout<<" fun eval :"<<value<<endl;
 
 //double value = flash.solveBubbleP(pr, T, Pinit, xmol, 1e-4,1000);
-//double val2 = flash.solveBubblePoint(pr,T,xmol,1e-4,100);
+
 //double val2 = flash.solveBisection(pr,T,xmol,1,1e-4);
 
 //vector<double> diff = divVec({1,2,3},{2,2,2});

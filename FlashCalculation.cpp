@@ -370,7 +370,6 @@ cout<<"Solution "<<sol<<" found after "<<iter<<" iterations"<<endl;
 return sol;
 }
 
-
 vector<double> FlashCalculation::updateKi(PropertyPackage pr, double T, double press, vector<double> xmol, vector<double> y){
 
 int n = pr.nc;
@@ -394,10 +393,71 @@ K[i]=FiL[i]/FiV[i];
 //obj[i]=FiL[i]-FiV[i];
 }
 
-
 return K;
 
 }
+
+vector<double> FlashCalculation::objective(PropertyPackage pr, double T, double press, vector<double> xmol, vector<double> y){
+
+ int n = pr.nc;
+
+ vector<double> obj(n);
+ vector<double> ZL = pr.analyticalPengRobinson(press, T, xmol);
+ vector<double> ZV = pr.analyticalPengRobinson(press, T, y);
+
+ double ZiL = find_min_max(ZL,"min",0,ZL.size());
+ double ZiV = find_min_max(ZV,"max",0,ZV.size());
+
+
+ vector<double> FiV = pr.calcFi(T,press,y,ZiV);
+ vector<double> FiL = pr.calcFi(T,press,xmol,ZiL);
+
+ for(int i=0; i<n; i++){
+
+
+  //K[i]=FiL[i]-FiV[i];
+  obj[i]=FiL[i]-FiV[i];
+ }
+
+ return obj;
+
+}
+
+vector<double> FlashCalculation::dObjective(PropertyPackage pr, double T, double press, vector<double> xmol, vector<double> y){
+
+ int n = pr.nc;
+
+ vector<double> K(n);
+ vector<double> dObj(n);
+ vector<double> ZL = pr.analyticalPengRobinson(press, T, xmol);
+ vector<double> ZV = pr.analyticalPengRobinson(press, T, y);
+
+ vector<double> ZiLDer = pr.analyticalDerivativeZc(press, T, xmol);
+ vector<double> ZiVDer = pr.analyticalDerivativeZc(press, T, y);
+
+
+ double ZiL = find_min_max(ZL,"min",0,ZL.size());
+ int indexL = indexOf(ZL,ZiL);
+
+ double ZiV = find_min_max(ZV,"max",0,ZV.size());
+ int indexV = indexOf(ZV,ZiV);
+
+ double ZLDer = ZiLDer[indexL];
+ double ZVDer = ZiLDer[indexV];
+
+ vector<double> FiLDer = pr.calcFiDer(T,press,xmol,ZLDer);
+ vector<double> FiVDer = pr.calcFiDer(T,press,xmol,ZVDer);
+
+ for(int i=0; i<n; i++){
+
+
+  //K[i]=FiL[i]-FiV[i];
+  dObj[i]=FiLDer[i]-FiVDer[i];
+ }
+
+
+  return dObj;
+  }
 
 
 double FlashCalculation::solveBubblePoint(PropertyPackage pr, double T, vector<double> xmol, double error, int maxIter){
@@ -406,8 +466,10 @@ int flag=-1;
 double sol=0;
 double h=2e-7;
 
-vector<vector<double>> K(maxIter, vector<double>(n, 0));
-vector<vector<double>> Kder(maxIter, vector<double>(n, 0));
+vector<vector<double>> obj(maxIter, vector<double>(n, 0));
+vector<vector<double>> dObj(maxIter, vector<double>(n, 0));
+ vector<vector<double>> K(maxIter, vector<double>(n, 0));
+ //vector<vector<double>> (maxIter, vector<double>(n, 0));
 vector<vector<double>> y(maxIter, vector<double>(n, 0));
 //printMatrix(K);
 double Pinit = calcPinit(pr,xmol,T);
@@ -427,24 +489,41 @@ P[0]=Pinit;
 cout<<"here Pinit "<<Pinit<<endl;
 for(int i=1; i<maxIter; i++){
 
+
+ vector<double> ZL = pr.analyticalPengRobinson(P[i-1], T, xmol);
+ vector<double> ZV = pr.analyticalPengRobinson(P[i-1], T, y[i-1]);
+
+ double ZiL = find_min_max(ZL,"min",0,ZL.size());
+ double ZiV = find_min_max(ZV,"max",0,ZV.size());
+
+ cout<<"ZiL "<<ZiL<<endl;
+
+ vector<double> FiV = pr.calcFi(T,P[i-1],y[i-1],ZiV);
+ vector<double> FiL = pr.calcFi(T,P[i-1],xmol,ZiL);
+
+
 // vecSum(prodVec(xmol,prodScal(vecDiff(flash.updateKi(pr,T,P1+h,xmol,y1), flash.updateKi(pr,T,P1-h,xmol,y1)),1/(2*h))));
 //double fder = vecSum(prodVec(xmol,prodScal(vecDiff(updateKi(pr,T,P[i-1]+h,xmol,y[i-1]), updateKi(pr,T,P[i-1]-h,xmol,y[i-1])),1/(2*h))));
 //vecSum(prodVec(xmol,(prodScal(vecDiff(updateKi(pr,T,P[i-1]+h, xmol,y[i-1]),updateKi(pr,T,P[i-1]-h, xmol,y[i-1])) ,1/(2*h)))));
 //vecSum(prodVec(xmol,prodScal(vecDiff(updateKi(pr,T,P[i-1]+h, xmol,y[i-1]),updateKi(pr,T,P[i-1]-h, xmol,y[i-1])),1/(2*h))));
 //double f = vecSum(prodVec(xmol,updateKi(pr,T,P[i-1],xmol,y[i-1])))-1;
 
-double fder = vecSum(prodVec(xmol,Kder[i]));
-double f = vecSum(prodVec(xmol,K[i]))-1;
+ obj[i] = objective(pr,T,P[i-1],xmol,y[i-1]);
+ dObj[i] = dObjective(pr,T,P[i-1],xmol,y[i-1]);
+
+double fder = vecSum(prodVec(xmol,dObj[i]));
+double f = vecSum(prodVec(xmol,obj[i]));
 //double fder=vecSum(prodScal(vecDiff(updateKi(pr,T,P[i-1]+h,xmol,y[i-1]),updateKi(pr,T,P[i-1]-h,xmol,y[i-1])),1/(2*h)));
 //double f= vecSum(updateKi(pr,T,P[i-1],xmol,y[i-1]));
-cout<<"fder "<<fder<<endl;
-cout<<"f "<<f<<endl;
+//cout<<"fder "<<fder<<endl;
+//cout<<"f "<<f<<endl;
 //-vecSum((prodVec(xmol,divVec(K[i], Kder[i])))+1;
 
 //?addScal(vecSum(prodVec(xmol,divVec(K[i],Kder[i]))),-1)
 
 //double eval = vecSum(prodVec(xmol,divVec(K[i],Kder[i])))-1;
 y[i]=prodVec(K[i-1],xmol);
+K[i] = divVec(FiL,FiV);
 
 P[i]=P[i-1]-f/fder;
 cout<<"Pressure: "<<P[i]<<endl;

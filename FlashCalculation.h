@@ -24,7 +24,8 @@ double bisect(PropertyPackage pr, double a, double T,  double b, vector<double> 
 vector<double> updateKi(PropertyPackage pr, double T, double press, vector<double> xmol, vector<double> y);
 double solveBubblePoint(PropertyPackage pr, double T,vector<double> xmol,double error, int maxIter);
 double solveBisection(PropertyPackage pr, double T, vector<double> xmol, double offset, double error);
-
+ vector<double> dObjective(PropertyPackage pr, double T, double press, vector<double> xmol, vector<double> y);
+ vector<double> objective(PropertyPackage pr, double T, double press, vector<double> xmol, vector<double> y);
 };
 
 #endif

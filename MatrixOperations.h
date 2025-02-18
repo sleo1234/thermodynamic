@@ -21,5 +21,5 @@ vector<double> prodScal(vector<double>vec, double scal);
 vector<double> divVec(vector<double>vec, vector<double> vec2);
 vector<double> addScal(vector<double>vec, double scal); 
 vector<double> getVecSum(vector<double> xmol, vector<vector<double>> mat);
-
+int indexOf(vector<double> v, double element);
 #endif // MATRIX_OPERATIONS_H

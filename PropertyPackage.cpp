@@ -467,8 +467,8 @@ vector<double> PropertyPackage::analyticalDerivativeZc(double press, double temp
 
         double sol3Der = f1der * f33 + f33der * f1 - (1/3)*C2der;
         sols.push_back(sol1Der);
-        sols.push_back(sol2);
-        sols.push_back(sol3);
+        sols.push_back(sol2Der);
+        sols.push_back(sol3Der);
         }
 
 
@@ -552,8 +552,10 @@ return fug;
 
 vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double> xmol, double Zalfa){
 
-    double ZalfaDer = analyticalDerivativeZc(press,T,xmol)[0];
+
+    //double ZalfaDer = analyticalDerivativeZc(press,T,xmol)[0];
     //double ZalfaDer = 0.888;
+    double ZalfaDer = Zalfa;
     cout<<"Derivative of Z "<<endl;
 
     double Vm =(Zalfa*R*T)/press;//cm3/mol
@@ -670,7 +672,7 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
         Am_VecSum[i] = (-2*AmDer*vecSum[i])/(Am*Am) + 2*vecSumDer[i]/Am;
         ff[i] = Bi_BmDer[i];
       //  ff'*gg + ff * gg' - hh'
-    first_term_derivative[i] = ff[i]*gg+ff[i]*ggder - hhder;
+    first_term_derivative[i] = ff[i]*gg+(Bi[i]/Bm)*ggder - hhder;
 
     second_term_derivative[i] =(g[i]-h[i])*(l*fder+lder*f)+l*f*(gder[i]-hder[i]);
 

@@ -297,4 +297,9 @@ vector<double> getVecSum(vector<double> xmol, vector<vector<double>> mat){
            return xSum;
             }
 
-
+int indexOf(vector<double> v, double element){
+  int index = -1;
+  auto it = lower_bound(v.begin(), v.end(), element);
+  index = (int) (it - v.begin());
+  return index;
+  }
