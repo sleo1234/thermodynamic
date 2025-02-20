@@ -180,7 +180,7 @@ int main() {
         {2, 6}
     };
 //testBisection();
- fugacityData();
+ //fugacityData();
 vector<double> A={15.726,1872.46,-25.16};//propane
 vector<double> B={15.678,2154.9,-34.42};//butane
 vector<double> C={15.883,2477.07,-39.94};//pentane
@@ -191,7 +191,7 @@ vector<double> xmol={0.5,0.25,0.25};
 vector<double> omega={0.153,0.199,0.255};
  
 int nc = T_cr.size();
-double T =400;
+double T = 500;
 double press = 1.5;
 
 PropertyPackage pr(nc,omega,T_cr,P_cr,xmol);
@@ -202,9 +202,12 @@ pr.omega=omega;
 pr.x_mol=xmol;
 vector<double> Ki = pr.calcKi(T,press);
 
-
+//pr.calcFiDer(T,1.5,xmol,-0.1);
  FlashCalculation flash = FlashCalculation(pr);
- double val2 = flash.solveBubblePoint(pr,T,xmol,1e-4,100);
+//vector<double> Z=pr.analyticalPengRobinson(3.97,T,xmol);
+ cout<<"--------------------------------"<<endl;
+ //printVector(Z);
+double val2 = flash.solveBubblePoint(pr,T,xmol,1e-3,50);
 
  /*
 //vector<double> result2 = pr.calcPi_sat(400);

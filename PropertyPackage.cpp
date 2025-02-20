@@ -385,14 +385,14 @@ vector<double> PropertyPackage::analyticalDerivativeZc(double press, double temp
         //double first_term = sign1*pow(abs((Q1+sqrt(D))),1.0/3.0);
 
         double first_term = sign1*(1/3)*(Q1der+Dder/(2*sqrt(D))*pow((Q1+sqrt(D)),-2/3));
-        double second_term = sign2*(1/3)*(1/3)*(Q1der-Dder/(2*sqrt(D))*pow((Q1-sqrt(D)),-2/3));
+        double second_term = sign2*(1/3)*(Q1der-Dder/(2*sqrt(D))*pow((Q1-sqrt(D)),-2/3));
 
         //double first_termDer = pow(abs((Q1+sqrt(D))),1.0/3.0)*sign1*(1/3)*pow(abs((Q1+sqrt(D))),-2.0/3.0)*QplusDder;
 
         //double second_term = sign1*pow(abs((Q1-sqrt(D))),1.0/3.0);
         //double second_termDer = sign2der*pow(abs((Q1+sqrt(D))),1.0/3.0)+sign2*(1/3)*pow(abs((Q1-sqrt(D))),-2.0/3.0)*QminusDder;
 
-        double sol1der= first_term+second_term;
+        double sol1der= first_term+second_term-C2der/3;
         cout<<"sol1der "<<first_term<<" "<<second_term<<endl;
         sols.push_back(sol1der);
 
@@ -469,6 +469,9 @@ vector<double> PropertyPackage::analyticalDerivativeZc(double press, double temp
         sols.push_back(sol1Der);
         sols.push_back(sol2Der);
         sols.push_back(sol3Der);
+        cout<<"sol1Der "<<sol1Der<<endl;
+        cout<<"sol2Der "<<sol2Der<<endl;
+        cout<<"sol3Der "<<sol3Der<<endl;
         }
 
 
@@ -550,12 +553,12 @@ return fug;
 }
 
 
-vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double> xmol, double Zalfa){
+vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double> xmol, double Zalfa,double ZalfaDer){
 
 
     //double ZalfaDer = analyticalDerivativeZc(press,T,xmol)[0];
     //double ZalfaDer = 0.888;
-    double ZalfaDer = Zalfa;
+
     cout<<"Derivative of Z "<<endl;
 
     double Vm =(Zalfa*R*T)/press;//cm3/mol
@@ -647,6 +650,7 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
       vector<double> hder(nc);
 
       double l = log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
+      double lsign = (Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm);
       double lder = logZalfa_rad2;
 
       vector<double> second_term_derivative(nc);
@@ -671,17 +675,26 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
         Bi_BmDer[i] = BiDer[i]/Bm-(1/(Bm*Bm))*Bi[i];
         Am_VecSum[i] = (-2*AmDer*vecSum[i])/(Am*Am) + 2*vecSumDer[i]/Am;
         ff[i] = Bi_BmDer[i];
+        g[i] = (2.0/Am)*vecSum[i];
+        h[i]= Bi[i]/Bm;
+
+        gder[i] = Am_VecSum[i];
+         hder[i] =Bi_BmDer[i];
       //  ff'*gg + ff * gg' - hh'
+
+
     first_term_derivative[i] = ff[i]*gg+(Bi[i]/Bm)*ggder - hhder;
 
     second_term_derivative[i] =(g[i]-h[i])*(l*fder+lder*f)+l*f*(gder[i]-hder[i]);
 
+//g = (2.0/Am)*vecSum[i] <====>  Am_VecSum[i] ----- vector<double> g(nc)
+   // h = Bi[i]/Bm      <====> Bi_BmDer[i] ------ vector<double> h(nc)
     ffider[i] = first_term_derivative[i]+second_term_derivative[i];
 
     ffi[i] =(Bi[i]/Bm)*(Zalfa-1.0)-log(Zalfa-Bm)-
     (Am/(2*rad2*Bm))*( (2.0/Am)*vecSum[i] -
                        Bi[i]/Bm)*log((Zalfa+(1+rad2)*Bm)/(Zalfa+(1-rad2)*Bm));
-
+     //ffi[i]=calcFi(T,press,xmol,Zalfa);
      //2*vecSum[i] '   2  * vecSum[i] + vecSumDer[i] * 2
     //-----------  = (---) '                         ------
     //    Am          Am                                Am
@@ -692,8 +705,15 @@ vector<double> PropertyPackage::calcFiDer(double T, double press, vector<double>
         //    Am                Am*Am                  Am
      */
 
-    fug[i] = exp(ffi[i]);
-    fugder[i] = ffider[i]*fug[i];
+        cout<<"g(i)= "<<g[i]<<endl;
+        cout<<"h(i)= "<<h[i]<<endl;
+        cout<<"gder(i)= "<<gder[i]<<endl;
+        cout<<"hder(i)= "<<hder[i]<<endl;
+        cout<<"second term derivative(i)= "<<second_term_derivative[i]<<endl;
+        cout<<"first term derivative(i) = "<<first_term_derivative[i]<<endl;
+        cout<<"l "<<l<<endl;
+        fug[i] = exp(ffi[i]);
+        fugder[i] = ffider[i]*fug[i];
      cout<<"ffderi1 "<<first_term_derivative[i]<<endl;
         cout<<"ffderi2 "<<second_term_derivative[i]<<endl;
         cout<<"Zalfader "<<ZalfaDer<<endl;

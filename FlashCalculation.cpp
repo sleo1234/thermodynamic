@@ -444,9 +444,10 @@ vector<double> FlashCalculation::dObjective(PropertyPackage pr, double T, double
 
  double ZLDer = ZiLDer[indexL];
  double ZVDer = ZiLDer[indexV];
-
- vector<double> FiLDer = pr.calcFiDer(T,press,xmol,ZLDer);
- vector<double> FiVDer = pr.calcFiDer(T,press,xmol,ZVDer);
+cout<<"ZLDer-------------------------------------- : "<<ZLDer<<endl;
+cout<<"ZVDer-------------------------------------- : "<<ZVDer<<endl;
+ vector<double> FiLDer = pr.calcFiDer(T,press,xmol,ZiL,ZLDer);
+ vector<double> FiVDer = pr.calcFiDer(T,press,xmol,ZiV, ZVDer);
 
  for(int i=0; i<n; i++){
 
@@ -471,10 +472,14 @@ vector<vector<double>> dObj(maxIter, vector<double>(n, 0));
  vector<vector<double>> K(maxIter, vector<double>(n, 0));
  //vector<vector<double>> (maxIter, vector<double>(n, 0));
 vector<vector<double>> y(maxIter, vector<double>(n, 0));
+//vector<double> ZL(maxIter);
+//vector<double> ZV(maxIter);
+
 //printMatrix(K);
 double Pinit = calcPinit(pr,xmol,T);
 vector<double> P(maxIter);
-
+double ZiL=0;
+ double ZiV=0;
 vector<double> ki0 = pr.calcKi(T,Pinit);
 double sum=0;
 
@@ -493,8 +498,17 @@ for(int i=1; i<maxIter; i++){
  vector<double> ZL = pr.analyticalPengRobinson(P[i-1], T, xmol);
  vector<double> ZV = pr.analyticalPengRobinson(P[i-1], T, y[i-1]);
 
- double ZiL = find_min_max(ZL,"min",0,ZL.size());
- double ZiV = find_min_max(ZV,"max",0,ZV.size());
+ cout<<" i "<<i<<endl;
+printVector(ZL);
+
+ if (ZL.size()>1){
+   ZiL = find_min_max(ZL,"min",0,ZL.size());
+  ZiV = find_min_max(ZV,"max",0,ZV.size());
+}
+else{
+  ZiL=ZL[0];
+ ZiV=ZV[0];
+}
 
  cout<<"ZiL "<<ZiL<<endl;
 
@@ -527,6 +541,7 @@ K[i] = divVec(FiL,FiV);
 
 P[i]=P[i-1]-f/fder;
 cout<<"Pressure: "<<P[i]<<endl;
+printVector(y[i]);
 //printVector(K[i]);
  if (abs(P[i]-P[i-1])<= error ){
 
