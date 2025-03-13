@@ -51,23 +51,49 @@ return Pinit;
 
 
 
-double FlashCalculation::solVapFrac(vector<double> K, vector<double> xmol, double x0){
+double FlashCalculation::solVapFrac(vector<double> K, vector<double> xmol, double V0){
 
-//double V0;
-//double error =1e-6;
-//int maxIter = 10000;
+int iter=0;
+double h=0.0000001;
+int maxIter = 100;
+double sol=0.0;
+int flag=-1;
+double error=1e-6;
+vector<double> vec(maxIter);
+vector<double> fun(maxIter);
+vector<double> dfun(maxIter);
+
+vec[0]=V0;
 
 
-
-
-auto lambda = [](vector<double> K, vector<double> xmol,double V) -> double {return rachfordRice(K,xmol,V);};
+//auto lambda = [](vector<double> K, vector<double> xmol,double V) -> double {return rachfordRice(K,xmol,V);};
 //function<double(double)> fun = lambda;
 //const function<double(double)>& fun_ref = fun;
 //double vaporFrac = nRaphson(fun_ref,x0,1e-5,1000);
 
 
-return 0;
 
+for (int i=1; i< maxIter; i++){
+fun[i-1] = rachfordRice(K,xmol,vec[i-1]);
+dfun[i-1] = (rachfordRice(K,xmol,vec[i-1]+h)-rachfordRice(K,xmol,vec[i-1]-h))/(2*h);
+
+vec[i] = vec[i-1] - fun[i-1]/dfun[i-1];
+
+   if (abs(vec[i] - vec[i-1]) <=error){
+   sol=vec[i];
+   flag=1;
+   cout<<"Solutiom "<<sol<<" found after "<<i<<" iterations"<<endl;
+   }
+
+if (flag>0) break;
+
+}
+
+if (flag<0) {
+cout<<"Solution not found.1234" <<endl;
+
+}
+return sol;
 
 }
 
@@ -485,11 +511,16 @@ double sum=0;
 
 for (int i=0; i <n; i++){
 
- y[0][i] = xmol[i]*ki0[i];
+ //y[0][i] = xmol[i]*ki0[i];
  K[0][i] = ki0[i];
 
 }
-P[0]=Pinit;
+
+y[0][0]=0.6;
+y[0][1]=0.2;
+y[0][2]=0.2;
+double Pi = pr.twoPhaseSolution(T,xmol,Pinit);
+P[0]=Pi-0.1;
 //printVector(y[0]);
 cout<<"here Pinit "<<Pinit<<endl;
 for(int i=1; i<maxIter; i++){
@@ -508,9 +539,11 @@ printVector(ZL);
 else{
   ZiL=ZL[0];
  ZiV=ZV[0];
+
 }
 
  cout<<"ZiL "<<ZiL<<endl;
+ cout<<"ZiV "<<ZiV<<endl;
 
  vector<double> FiV = pr.calcFi(T,P[i-1],y[i-1],ZiV);
  vector<double> FiL = pr.calcFi(T,P[i-1],xmol,ZiL);
@@ -522,8 +555,8 @@ else{
 //vecSum(prodVec(xmol,prodScal(vecDiff(updateKi(pr,T,P[i-1]+h, xmol,y[i-1]),updateKi(pr,T,P[i-1]-h, xmol,y[i-1])),1/(2*h))));
 //double f = vecSum(prodVec(xmol,updateKi(pr,T,P[i-1],xmol,y[i-1])))-1;
 
- obj[i] = objective(pr,T,P[i-1],xmol,y[i-1]);
- dObj[i] = dObjective(pr,T,P[i-1],xmol,y[i-1]);
+ obj[i] = objective(pr,T,P[i-1],xmol,y[i-1]); //FiL - FiV - OBJECTIVE FUNCTION
+ dObj[i] = dObjective(pr,T,P[i-1],xmol,y[i-1]); // (FiL - FiV)'
 
 double fder = vecSum(prodVec(xmol,dObj[i]));
 double f = vecSum(prodVec(xmol,obj[i]));
@@ -542,6 +575,8 @@ K[i] = divVec(FiL,FiV);
 P[i]=P[i-1]-f/fder;
 cout<<"Pressure: "<<P[i]<<endl;
 printVector(y[i]);
+cout<<endl;
+cout<<"F "<<f<<endl<<" and fer "<<fder<<endl;
 //printVector(K[i]);
  if (abs(P[i]-P[i-1])<= error ){
 
@@ -686,4 +721,95 @@ cout<<"Solution: "<<sol<<endl;
      }
 
 return sol;
+}
+
+double FlashCalculation::flashTP(PropertyPackage pr, double T, double press, vector<double> xmol){
+
+int iter=0;
+int n = pr.nc;
+
+int maxIter=20;
+vector<vector<double>> K = vector<vector<double> >(maxIter, vector<double>(n, 0));
+vector<vector<double>> x = vector<vector<double> >(maxIter, vector<double>(n, 0));
+vector<vector<double>> y = vector<vector<double> >(maxIter, vector<double>(n, 0));
+vector<vector<double>> FiL = vector<vector<double> >(maxIter, vector<double>(n, 0));
+vector<vector<double>> FiV = vector<vector<double> >(maxIter, vector<double>(n, 0));
+
+vector<double> ZiL = vector<double>(maxIter);
+vector<double> ZiV = vector<double>(maxIter);
+vector<double> teta = vector<double>(maxIter);
+
+vector<double> ki0=pr.calcKi(T,press);
+
+teta[0] = solVapFrac(ki0,xmol,0.5);
+cout<<"teta[0] "<<teta[0]<<endl;
+for (int i=0; i <n; i++){
+  K[0][i]=ki0[i];
+  x[0][i] = xmol[i]/(1.0-(1.0-ki0[i])*teta[0]);
+  y[0][i] =x[0][i]* ki0[i];
+
+}
+
+for (int j=0; j<maxIter-1; j++){
+   cout<<"teta[0] in for "<<teta[0]<<endl;
+   cout<<"j --- "<<j<<endl;
+   teta[j] = solVapFrac(K[j],xmol,0.5);
+   cout<<"KJ "<<endl;
+   printVector(K[j]);
+   vector<double> diff = addScal(K[j],-1.0);
+   vector<double> product = prodScal(diff,teta[j]);
+   vector<double> diff2 = addScal(product,-1.0);
+   cout<<"---calcs---------"<<endl;
+   printVector(diff2);
+   printVector(product);
+   printVector(diff);
+   cout<<"---calcs--end-------"<<endl;
+   x[j] = divVec(xmol,diff2);
+
+   vector<double> ZL = pr.analyticalPengRobinson(press,T,x[j]);
+   cout<<" ZL"<<endl;
+
+   cout<<endl;
+   printVector(ZL);
+
+   ZiL[j]=find_min_max(ZL,"min",0,ZL.size());
+   y[j] = prodVec(x[j],K[j]);
+
+   vector<double> ZV = pr.analyticalPengRobinson(press,T,y[j]);
+   cout<<" ZV"<<endl;
+   ZiV[j]=find_min_max(ZV,"max",0,ZV.size());
+
+   FiL[j] = pr.calcFi(T,press,x[j],ZiL[j]);
+   FiV[j] = pr.calcFi(T,press,y[j],ZiV[j]);
+
+   K[j+1] = divVec(FiL[j],FiV[j]);
+   iter++;
+
+
+
+}
+
+cout<<"-----------------------------V " <<endl;
+printVector(teta);
+
+cout<<"-----------------------------y " <<endl;
+printMatrix(y);
+
+cout<<"-----------------------------K " <<endl;
+printMatrix(K);
+
+cout<<"-----------------------------x " <<endl;
+printMatrix(x);
+
+cout<<"-----------------------------y " <<endl;
+printMatrix(y);
+
+cout<<"-----------------------------ZiL " <<endl;
+printVector(ZiL);
+
+cout<<"-----------------------------ZiV " <<endl;
+printVector(ZiV);
+
+return 0;
+
 }

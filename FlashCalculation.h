@@ -26,6 +26,7 @@ double solveBubblePoint(PropertyPackage pr, double T,vector<double> xmol,double 
 double solveBisection(PropertyPackage pr, double T, vector<double> xmol, double offset, double error);
  vector<double> dObjective(PropertyPackage pr, double T, double press, vector<double> xmol, vector<double> y);
  vector<double> objective(PropertyPackage pr, double T, double press, vector<double> xmol, vector<double> y);
+double flashTP(PropertyPackage pr, double T, double press, vector<double> xmol);
 };
 
 #endif

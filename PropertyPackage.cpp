@@ -495,21 +495,127 @@ covolParam(xmol);
 
 }
 
-vector<double> PropertyPackage::solvePengRobinsonEq(double T, double press, vector<double> xmol) {
+double PropertyPackage::solvePengRobinsonEq(double T, double P0, vector<double> xmol) {
 
-calcPengRobinsonParam(T,press,xmol);
+double a = P0+20;
+double b = P0-20;
+double sol =0;
+double error =1e-4;
 
+//
+int flag = -1;
+    if (calcD(a,T,xmol) * calcD(b,T,xmol) >= 0) {
+        cout << "You have not assumed right a and b\n";
 
-vector<double> sols =analyticalPengRobinson(press, T, xmol);
+    }
 
-int noOfSOlutions = sols.size();
+    double c = a;
+    while ((b-a) >= error) {
+    if (flag <0) {
+        cout<<"no solution found";
 
+      }
+        // Find middle point
+        c = (a+b)/2;
 
+        // Check if middle point is root
+        if (calcD(c,T,xmol) == error)
+            return c;
 
-return sols;
+        // Decide the side to repeat the steps
+        else if (calcD(c,T,xmol)*calcD(a,T,xmol) < 0)
+            b = c;
+        else
+            a = c;
+    }
+cout << "The value of root is : " << c;
+sol=c;
+
+return sol;
 
 }
 
+double PropertyPackage::twoPhaseSolution(double temp, vector<double> xmol,double P0){
+
+    int maxIter = 100;
+    double error = 1.e-2;
+    vector<double> P(maxIter);
+
+    double pi = 4*atan(1);
+    vector<double> sols;
+    P[0]=P0;
+    int flag = 0;
+    double sol =0;
+    double offset = 0;
+
+    vector<double> A(maxIter);
+    vector<double> B(maxIter);
+    vector<double> C2(maxIter);
+    vector<double> C1(maxIter);
+    vector<double> C0(maxIter);
+    vector<double> Q1(maxIter);
+    vector<double> P1(maxIter);
+    vector<double> D(maxIter);
+    vector<double> Ader(maxIter);
+    vector<double> Bder(maxIter);
+
+    vector<double> C2der(maxIter);
+    vector<double> C1der(maxIter);
+    vector<double> C0der(maxIter);
+    vector<double> Q1der(maxIter);
+    vector<double> P1der(maxIter);
+    vector<double> Dder(maxIter);
+    double a = P0+3;
+    double b = P0-3;
+
+
+for (int i = 1; i < maxIter-1; i++) {
+
+     A[i-1] = (attractParam (temp,xmol) * P[i-1]) / (R * R * temp * temp);
+     B[i-1] = (covolParam(xmol) * P[i-1]) /(R * temp);
+
+     C2[i-1] = B[i-1]-1.0;
+     C1[i-1] = (A[i-1]-3*B[i-1]*B[i-1]-2*B[i-1]);
+     C0[i-1] =(B[i-1]*B[i-1]*B[i-1]+B[i-1]*B[i-1]-A[i-1]*B[i-1]);
+     Q1[i-1] = C2[i-1]*C1[i-1]/6.0-C0[i-1]/2.0-(C2[i-1]*C2[i-1]*C2[i-1])/27.0;
+
+     P1[i-1] = C2[i-1]*C2[i-1]/9.0-C1[i-1]/3.0;
+     D[i-1] = Q1[i-1]*Q1[i-1]-P1[i-1]*P1[i-1]*P1[i-1];
+
+     Ader[i-1] = (attractParam (temp,xmol)) / (R * R * temp * temp);
+     Bder[i-1] = (covolParam(xmol)) /(R * temp);
+
+     C2der[i-1] = Bder[i-1];
+     C1der[i-1] = (Ader[i-1] - 6*Bder[i-1]*B[i-1]-2*Bder[i-1]);
+
+     C0der[i-1] = 3*B[i-1]*B[i-1]*Bder[i-1]+2*Bder[i-1]*B[i-1]-(Ader[i-1]*B[i-1]+A[i-1]*Bder[i-1]);
+     Q1der[i-1] = (C2der[i-1]*C1[i-1]+C1der[i-1]*C2[i-1])/6-C0der[i-1]/2-C2[i-1]*C2[i-1]*C2der[i-1]/9;
+
+     P1der[i-1] = 2*C2[i-1]*C2der[i-1]/9-C1der[i-1]/3;
+     Dder[i-1] =  2*Q1[i-1]*Q1der[i-1]-3*P1[i-1]*P1[i-1]*P1der[i-1];
+
+    P[i]= P[i-1] - (D[i-1]+offset)/Dder[i-1];
+    if (abs(P[i] - P[i-1]) <=error){
+        sol=P[i];
+        flag=1;
+        cout<<"Solutiom "<<sol<<" found after "<<i<<" iterations"<<endl;
+    }
+     if (flag > 0) break;
+
+
+    }
+    if (flag<0) {
+        cout<<"Solution not found."<<endl;
+
+    }
+    vector<double> Z = analyticalPengRobinson(sol, temp, xmol);
+    int noOfSOlutions = Z.size();
+    cout<<" size "<<noOfSOlutions<<endl;
+    vector<double> zz = analyticalPengRobinson(sol+0.1, temp, xmol);
+    cout<<" size "<<zz.size()<<endl;
+    printVector(Z);
+   return sol;
+  }
 
 //check for mutliple real solutions
 //highest compresibility factor - vapor phas, lowest - liquid phase;
@@ -749,6 +855,23 @@ propMixture = propMixture + xmol[i]*property[i];
 
 
 return propMixture;
+}
+
+
+double PropertyPackage::calcD(double press, double temp, vector<double> xmol){
+    double pi = 4*atan(1);
+
+    double A = (attractParam (temp,xmol) * press) / (R * R * temp * temp);
+    double B = (covolParam(xmol) * press) /(R * temp);
+
+    double C2 = B-1.0;
+    double C1 = (A-3*B*B-2*B);
+    double C0 =(B*B*B+B*B-A*B);
+    double Q1 = C2*C1/6.0-C0/2.0-(C2*C2*C2)/27.0;
+    double P1 = C2*C2/9.0-C1/3.0;
+    double D = Q1*Q1-P1*P1*P1;
+    return D;
+
 }
 
 

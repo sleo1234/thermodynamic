@@ -141,6 +141,51 @@ return output;
 }
 
 
+double dRachfordRice(vector<double> K, vector<double> xmol, double V){
+
+
+ if (K.size() != xmol.size()){
+
+  throw invalid_argument("K and xmol must have same size");
+
+ }
+
+ int n=K.size();
+ double numerator =0.0;
+ double denominator=1.0;
+
+
+ for (int i=0; i<n;i++){
+
+  denominator *= (1.0+V*(K[i]-1.0));
+
+ }
+
+
+ for (int i=0; i<n; i++){
+
+  double term = xmol[i]*(K[i]-1.0);
+  double partial_product=1.0;
+
+
+
+
+  for (int j=0; j<n; j++){
+   if (j!=i){
+    partial_product *= (1.0+V*(K[j]-1.0));
+   }
+
+
+  }
+  numerator += term * partial_product;
+
+ }
+ double output = numerator/denominator;
+ return output;
+
+}
+
+
 double diffRachfordRice(vector<double> K, vector<double>, vector<double> xmol,double V){
 
 double h=0.000002;

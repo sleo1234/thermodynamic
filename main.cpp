@@ -32,7 +32,7 @@ x1*x1*x1+3*x1*x1-4*x1+0.98
 };
 
  return system;
- 
+
 }
 
 
@@ -40,10 +40,10 @@ vector<double> systemEq(const vector<double>& vars){
  
  double x1 = vars[0];
  
-vector<double> T_cr={369.8,425.2,469.7};
-vector<double> P_cr={4.25,3.8,3.37};
-vector<double> xmol={0.5,0.25,0.25};
-vector<double> omega={0.153,0.199,0.255};
+vector T_cr={369.8,425.2,469.7};
+vector P_cr={4.25,3.8,3.37};
+vector xmol={0.5,0.25,0.25};
+vector omega={0.153,0.199,0.255};
  
 int nc = T_cr.size();
 double T =400;
@@ -65,7 +65,6 @@ result
 };
 
  return system;
- 
 }
 
 
@@ -77,7 +76,7 @@ vector<double> xmol={0.5,0.25,0.25};
 vector<double> omega={0.153,0.199,0.255};
  
 int nc = T_cr.size();
-double T =450;
+double T = 600;
 double press = 1.5;
 
 PropertyPackage pr(nc,omega,T_cr,P_cr,xmol);
@@ -119,7 +118,7 @@ void fugacityData() {
  double T = 400;
  double press = 1.5;
 
- vector<double> P= {1.5,1.6};
+ vector<double> P= {2,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.3,3.4,3.5,3.6,3.7};
  int data_size = P.size();
 
  vector<vector<double>>Zc(3,vector<double>(data_size,0));
@@ -135,6 +134,21 @@ void fugacityData() {
  pr.omega=omega;
  pr.x_mol=xmol;
 
+ for (int i=0; i<data_size; i++) {
+
+  cout<<"Z at Pi "<<P[i]<<endl;
+  printVector(pr.analyticalPengRobinson(P[i],T,xmol));
+  cout<<endl;
+  cout<<"Zder at Pi "<<P[i]<<endl;
+  printVector(pr.analyticalDerivativeZc(P[i],T,xmol));
+  cout<<"end of Zder"<<endl;
+
+ }
+
+
+ vector<double> test = pr.analyticalPengRobinson(P[3],T,xmol);
+ cout<<"test "<<endl;
+ printVector(test);
  for (int j=0; j<3; j++) {
   for (int i=0; i<data_size; i++) {
    Zc[j][i] = pr.analyticalPengRobinson(P[i],T,xmol)[i];
@@ -191,8 +205,8 @@ vector<double> xmol={0.5,0.25,0.25};
 vector<double> omega={0.153,0.199,0.255};
  
 int nc = T_cr.size();
-double T = 500;
-double press = 1.5;
+double T = 400;
+double press = 3;
 
 PropertyPackage pr(nc,omega,T_cr,P_cr,xmol);
 pr.nc=nc;
@@ -201,14 +215,21 @@ pr.P_cr=P_cr;
 pr.omega=omega;
 pr.x_mol=xmol;
 vector<double> Ki = pr.calcKi(T,press);
-
+//fugacityData();
 //pr.calcFiDer(T,1.5,xmol,-0.1);
  FlashCalculation flash = FlashCalculation(pr);
+
 //vector<double> Z=pr.analyticalPengRobinson(3.97,T,xmol);
  cout<<"--------------------------------"<<endl;
  //printVector(Z);
-double val2 = flash.solveBubblePoint(pr,T,xmol,1e-3,50);
+//double val2 = flash.solveBubblePoint(pr,T,xmol,1e-3,50);
+//double Pinit = flash.calcPinit(pr,xmol,T);
+ //double vapFrac = flash.solVapFrac(Ki,xmol,0.0);
+ //cout<<"vapFrac "<<vapFrac<<endl;
+flash.flashTP(pr,T,press,xmol);
 
+ //pr.twoPhaseSolution(T,xmol,Pinit);
+ //pr.solvePengRobinsonEq(T,Pinit,xmol);
  /*
 //vector<double> result2 = pr.calcPi_sat(400);
 //vector<double> result3 = pr.calcPi(A,B,C,400);
